@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judo Team Event Style Roulette</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+        :root {
+            --item-height: 180px;
+            --font-size: 7rem;
+        }
+
+        body {
+            background-color: #050a1a;
+            color: white;
+            font-family: 'Noto Sans JP', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .roulette-container {
+            background: linear-gradient(180deg, #00122e 0%, #0047ab 50%, #00122e 100%);
+            height: 60vh;
+            width: 100vw;
+            position: relative;
+            overflow: hidden;
+            border-top: 3px solid #00d4ff;
+            border-bottom: 3px solid #00d4ff;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .slot-wrapper {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            will-change: transform;
+            top: 50%;
+        }
+
+        .slot-item {
+            height: var(--item-height);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Oswald', sans-serif;
+            font-size: var(--font-size);
+            max-width: 100vw;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            opacity: 0.1;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            white-space: nowrap;
+            color: #88cfff;
+        }
+
+        .slot-item.winner {
+            opacity: 1 !important;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 1), 0 0 60px rgba(255, 255, 255, 0.8);
+            z-index: 20;
+        }
+
+        .slot-item.active {
+            opacity: 0.5;
+        }
+
+        #controls-wrapper {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+            z-index: 100;
+        }
+
+        #controls-wrapper.hidden-ui {
+            opacity: 0;
+            transform: translateY(100px);
+            pointer-events: none;
+            height: 0;
+            margin: 0;
+        }
+
+        .flash-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        @keyframes result-flash {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        input[type=range] {
+            accent-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="p-0">
+
+    <div class="roulette-container" id="container">
+        <div class="scanlines"></div>
+        <div class="flash-overlay" id="flash"></div>
+        <div id="wrapper" class="slot-wrapper"></div>
+    </div>
+
+    <div id="controls-wrapper" class="w-full max-w-5xl px-4 mt-6 overflow-y-auto max-h-[40vh]">
+        <div class="bg-[#0f172a]/90 backdrop-blur-md p-5 rounded-2xl border border-gray-800 shadow-2xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1">
+                    <label class="block text-[10px] font-black mb-1 text-blue-400 uppercase tracking-widest">項目リスト (改行区切り)</label>
+                    <textarea id="itemsInput" placeholder="例:&#13;100kg&#13;90kg&#13;81kg" class="w-full h-24 bg-black border border-gray-700 rounded-xl p-2 text-xs font-mono focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+
+                <div class="md:col-span-1 flex flex-col justify-center space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">文字サイズ上限</label>
+                            <span id="sizeVal" class="text-[10px] text-blue-400">7rem</span>
+                        </div>
+                        <input type="range" id="sizeSlider" min="2" max="15" step="0.5" value="7" class="w-full h-2 bg-gray-700 rounded-lg cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">表示エリアの高さ</label>
+                            <span id="heightVal" class="text-[10px] text-blue-400">60vh</span>
+                        </div>
+                        <input type="range" id="heightSlider" min="30" max="95" step="1" value="60" class="w-full h-2 bg-gray-700 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="md:col-span-1 flex flex-col justify-between">
+                    <div>
+                        <label class="block text-[10px] font-black mb-1 text-red-500 uppercase tracking-widest">確定させる結果</label>
+                        <select id="targetSelect" class="w-full bg-black border border-gray-700 rounded-xl p-2 text-xs focus:outline-none focus:border-red-500">
+                            <option value="random">ランダム</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mt-4 flex gap-2">
+                        <button id="spinBtn" class="flex-[2] bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl text-lg uppercase tracking-widest transition-all">
+                            抽選開始
+                        </button>
+                        <button id="resetBtn" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition-all text-xs">
+                            リセット
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wrapper = document.getElementById('wrapper');
+        const itemsInput = document.getElementById('itemsInput');
+        const targetSelect = document.getElementById('targetSelect');
+        const spinBtn = document.getElementById('spinBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const flash = document.getElementById('flash');
+        const controlsWrapper = document.getElementById('controls-wrapper');
+        const container = document.getElementById('container');
+        
+        const sizeSlider = document.getElementById('sizeSlider');
+        const heightSlider = document.getElementById('heightSlider');
+        const sizeVal = document.getElementById('sizeVal');
+        const heightVal = document.getElementById('heightVal');
+
+        let items = [];
+        let isSpinning = false;
+        
+        function refreshItems() {
+            const raw = itemsInput.value.trim();
+            items = raw ? raw.split('\n').map(i => i.trim()).filter(i => i.length > 0) : ["READY"];
+            updateTargetSelect();
+            renderSlots();
+        }
+
+        function updateLayoutSettings() {
+            let fontSizeRem = parseFloat(sizeSlider.value);
+            const viewHeight = heightSlider.value;
+            const winWidth = window.innerWidth;
+            
+            // ダミー要素を作って幅を計測し、はみ出しをチェック
+            const measure = document.createElement('div');
+            measure.style.fontFamily = 'Oswald, sans-serif';
+            measure.style.fontSize = fontSizeRem + 'rem';
+            measure.style.position = 'absolute';
+            measure.style.visibility = 'hidden';
+            measure.style.whiteSpace = 'nowrap';
+            document.body.appendChild(measure);
+
+            const longestText = items.reduce((a, b) => a.length > b.length ? a : b, "");
+            measure.textContent = longestText;
+            
+            // 画面幅の90%を超える場合はサイズを下げる
+            let currentPx = measure.offsetWidth;
+            const limit = winWidth * 0.9;
+            
+            if (currentPx > limit) {
+                const ratio = limit / currentPx;
+                fontSizeRem = fontSizeRem * ratio;
+            }
+            document.body.removeChild(measure);
+
+            document.documentElement.style.setProperty('--font-size', fontSizeRem + 'rem');
+            const itemHeightPx = (fontSizeRem * parseFloat(getComputedStyle(document.documentElement).fontSize)) * 1.3;
+            document.documentElement.style.setProperty('--item-height', itemHeightPx + 'px');
+            
+            sizeVal.textContent = parseFloat(sizeSlider.value) + 'rem' + (fontSizeRem < parseFloat(sizeSlider.value) ? ' (自動縮小中)' : '');
+            heightVal.textContent = viewHeight + 'vh';
+            
+            if (!isSpinning) {
+                container.style.height = viewHeight + 'vh';
+                renderSlots();
+            }
+        }
+
+        function updateTargetSelect() {
+            const current = targetSelect.value;
+            targetSelect.innerHTML = '<option value="random">ランダム</option>';
+            if (itemsInput.value.trim()) {
+                items.forEach((item, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    opt.textContent = `確定：${item}`;
+                    if (current == index) opt.selected = true;
+                    targetSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function renderSlots() {
+            wrapper.innerHTML = '';
+            const totalCount = 100; 
+            for (let i = 0; i < totalCount; i++) {
+                const text = items[i % items.length];
+                const div = document.createElement('div');
+                div.className = 'slot-item';
+                div.textContent = text;
+                wrapper.appendChild(div);
+            }
+            const itemHeightPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--item-height'));
+            wrapper.style.transform = `translateY(${-itemHeightPx / 2}px)`;
+        }
+
+        function updateItemStyles(centerIdx, isFinal = false) {
+            const allSlots = document.querySelectorAll('.slot-item');
+            allSlots.forEach((slot, i) => {
+                slot.classList.remove('active', 'winner');
+                if (i === centerIdx) {
+                    if (isFinal) {
+                        slot.classList.add('winner');
+                        // 決定時はさらに1.4倍にするが、それも画面幅で抑制
+                        const rect = slot.getBoundingClientRect();
+                        const winWidth = window.innerWidth;
+                        const scaleBase = 1.4;
+                        if (rect.width * scaleBase > winWidth * 0.95) {
+                            slot.style.transform = `scale(${(winWidth * 0.95) / rect.width})`;
+                        } else {
+                            slot.style.transform = `scale(${scaleBase})`;
+                        }
+                    } else {
+                        slot.classList.add('active');
+                        slot.style.transform = '';
+                    }
+                } else {
+                    slot.style.transform = '';
+                }
+            });
+        }
+
+        function spin() {
+            if (isSpinning || !itemsInput.value.trim()) return;
+            isSpinning = true;
+            controlsWrapper.classList.add('hidden-ui');
+            container.style.height = '100vh';
+
+            let targetIdx = targetSelect.value === 'random' ? Math.floor(Math.random() * items.length) : parseInt(targetSelect.value);
+            const itemHeightPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--item-height'));
+            const totalItems = items.length;
+            const rounds = 10;
+            const stopIdx = 5 + (rounds * totalItems) + targetIdx;
+            
+            const startN = stopIdx; 
+            const endN = targetIdx + (totalItems * 2); 
+            const duration = 7000;
+            let startTime = null;
+
+            function animate(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 4);
+                const currentN = startN - (easeOut * (startN - endN));
+                wrapper.style.transform = `translateY(${-(currentN * itemHeightPx) - (itemHeightPx / 2)}px)`;
+                updateItemStyles(Math.round(currentN));
+                if (progress < 1) requestAnimationFrame(animate);
+                else finish(Math.round(endN));
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function finish(finalIdx) {
+            updateItemStyles(finalIdx, true);
+            flash.style.animation = 'result-flash 0.4s ease-out forwards';
+            setTimeout(() => {
+                setTimeout(() => {
+                    controlsWrapper.classList.remove('hidden-ui');
+                    container.style.height = heightSlider.value + 'vh';
+                    isSpinning = false;
+                }, 3500);
+            }, 500);
+        }
+
+        spinBtn.addEventListener('click', spin);
+        resetBtn.addEventListener('click', () => { if(!isSpinning) init(); });
+        sizeSlider.addEventListener('input', updateLayoutSettings);
+        heightSlider.addEventListener('input', updateLayoutSettings);
+        itemsInput.addEventListener('input', () => { refreshItems(); updateLayoutSettings(); });
+
+        function init() { refreshItems(); updateLayoutSettings(); }
+        window.onload = init;
+        window.onresize = updateLayoutSettings;
+    </script>
+</body>
+</html>
